@@ -1,0 +1,8 @@
+{
+  "databases": [
+    {
+      "name": "قاعدة البيانات الرئيسية",
+      "file": "Data/main.xlsx"
+    }
+  ]
+}
