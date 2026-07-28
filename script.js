@@ -1,6 +1,6 @@
 // App State
 const state = {
-    password: "123", // الكلمة الافتراضية
+    password: "911611", // الكلمة الافتراضية
     workbook: null,
     sheetNames: [],
     activeSheet: "",
@@ -73,11 +73,11 @@ function getFormattedDateTime() {
 
 function escapeHtml(unsafe) {
     return String(unsafe)
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function highlightText(text, query) {
@@ -134,7 +134,7 @@ async function loadStateFromDB() {
         const tx = db.transaction(STORE_NAME, "readonly");
         const store = tx.objectStore(STORE_NAME);
         const request = store.get("appData");
-        
+
         request.onsuccess = () => {
             if (request.result && request.result.currentSheetData.length > 0) {
                 const data = request.result;
@@ -143,10 +143,10 @@ async function loadStateFromDB() {
                 state.searchColumns = data.searchColumns;
                 state.fileInfo = data.fileInfo;
                 state.activeSheet = data.activeSheet;
-                
+
                 // Show restore message
                 restoredSessionMsg.classList.remove('hidden');
-                
+
                 // Set File Info Badge
                 updateFileInfoBadge();
 
@@ -209,7 +209,7 @@ async function loadDbConfig() {
         const response = await fetch('config.json?v=' + new Date().getTime());
         if (!response.ok) throw new Error('لا يمكن قراءة config.json');
         const config = await response.json();
-        
+
         dbSelector.innerHTML = '';
         if (config.databases && config.databases.length > 0) {
             config.databases.forEach(db => {
@@ -231,7 +231,7 @@ async function loadDbConfig() {
 loadDbBtn.addEventListener('click', async () => {
     const fileUrl = dbSelector.value;
     const dbName = dbSelector.options[dbSelector.selectedIndex].text;
-    
+
     if (!fileUrl) {
         alert('يرجى اختيار قاعدة بيانات.');
         return;
@@ -242,24 +242,24 @@ loadDbBtn.addEventListener('click', async () => {
     fetchStatus.classList.remove('hidden');
     sheetSelectionWrapper.classList.add('hidden');
     columnSelection.classList.add('hidden');
-    
+
     // Disable button to prevent multiple clicks
     loadDbBtn.disabled = true;
 
     try {
         const response = await fetch(fileUrl + '?v=' + new Date().getTime()); // Prevent cache
         if (!response.ok) throw new Error('فشل تحميل الملف');
-        
+
         const arrayBuffer = await response.arrayBuffer();
         const data = new Uint8Array(arrayBuffer);
-        
-        state.workbook = XLSX.read(data, {type: 'array'});
+
+        state.workbook = XLSX.read(data, { type: 'array' });
         state.sheetNames = state.workbook.SheetNames;
-        
+
         if (state.sheetNames.length > 0) {
             state.fileInfo.name = dbName;
             state.fileInfo.date = getFormattedDateTime();
-            
+
             sheetSelectorSettings.innerHTML = '';
             state.sheetNames.forEach(name => {
                 const option = document.createElement('option');
@@ -267,10 +267,10 @@ loadDbBtn.addEventListener('click', async () => {
                 option.textContent = name;
                 sheetSelectorSettings.appendChild(option);
             });
-            
+
             sheetSelectionWrapper.classList.remove('hidden');
             fetchStatus.innerHTML = `<span style="color: #10B981;"><i class="fa-solid fa-check"></i> تم جلب البيانات بنجاح (${state.sheetNames.length} ورقة).</span>`;
-            
+
             loadDataForSheet();
             columnSelection.classList.remove('hidden');
         } else {
@@ -291,55 +291,55 @@ headerRowInput.addEventListener('change', loadDataForSheet);
 
 function loadDataForSheet() {
     if (!state.workbook) return;
-    
+
     const sheetName = sheetSelectorSettings.value;
     state.activeSheet = sheetName;
-    
+
     let headerRowIndex = parseInt(headerRowInput.value, 10);
     if (isNaN(headerRowIndex) || headerRowIndex < 1) headerRowIndex = 1;
     const skipRows = headerRowIndex - 1;
-    
+
     const worksheet = state.workbook.Sheets[sheetName];
-    
-    state.currentSheetData = XLSX.utils.sheet_to_json(worksheet, { 
-        defval: "", 
+
+    state.currentSheetData = XLSX.utils.sheet_to_json(worksheet, {
+        defval: "",
         blankrows: false,
         range: skipRows,
         raw: false
     });
-    
+
     let allColumnsSet = new Set();
-    if(state.currentSheetData.length > 0) {
+    if (state.currentSheetData.length > 0) {
         Object.keys(state.currentSheetData[0]).forEach(col => allColumnsSet.add(col));
     }
-    
+
     state.columns = Array.from(allColumnsSet).filter(col => {
         return !col.toUpperCase().includes('EMPTY');
     });
-    
+
     renderColumnSelection();
 }
 
 function renderColumnSelection() {
     columnsContainer.innerHTML = '';
-    
+
     if (state.columns.length === 0) {
         columnsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--text-muted);">لا توجد أعمدة صالحة. يرجى التأكد من رقم صف الجدول.</p>';
         return;
     }
-    
+
     state.columns.forEach(col => {
         const label = document.createElement('label');
         label.className = 'checkbox-item';
-        
+
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.value = col;
         checkbox.checked = true;
-        
+
         label.appendChild(checkbox);
         label.appendChild(document.createTextNode(col));
-        
+
         columnsContainer.appendChild(label);
     });
 }
@@ -358,20 +358,20 @@ deselectAllBtn.addEventListener('click', () => {
 startAppBtn.addEventListener('click', () => {
     const checkboxes = columnsContainer.querySelectorAll('input[type="checkbox"]:checked');
     state.searchColumns = Array.from(checkboxes).map(cb => cb.value);
-    
+
     if (state.searchColumns.length === 0) {
         alert('يرجى تحديد عمود واحد على الأقل ليتم البحث فيه.');
         return;
     }
-    
+
     updateFileInfoBadge();
-    
+
     // Save state so it persists on refresh
     saveStateToDB();
-    
+
     state.activeSearchColumn = "all";
     renderSearchTabs();
-    
+
     searchInput.value = '';
     updateSearchUI();
     showScreen('search');
@@ -437,17 +437,17 @@ clearSearchBtn.addEventListener('click', () => {
 function updateSearchUI(query = "") {
     resultsContainer.innerHTML = '';
     resultCountEl.classList.add('hidden');
-    
+
     if (query === "") {
         welcomeMessage.classList.remove('hidden');
         noResultsMessage.classList.add('hidden');
         return;
     }
-    
+
     welcomeMessage.classList.add('hidden');
-    
+
     const results = performSearch(query);
-    
+
     if (results.length === 0) {
         noResultsMessage.classList.remove('hidden');
     } else {
@@ -460,10 +460,10 @@ function updateSearchUI(query = "") {
 
 function performSearch(query) {
     const lowerQuery = query.toLowerCase();
-    
+
     return state.currentSheetData.filter(row => {
-        const columnsToSearch = state.activeSearchColumn === 'all' 
-            ? state.searchColumns 
+        const columnsToSearch = state.activeSearchColumn === 'all'
+            ? state.searchColumns
             : [state.activeSearchColumn];
 
         return columnsToSearch.some(col => {
@@ -476,14 +476,14 @@ function performSearch(query) {
 
 function renderResults(results, query) {
     const limit = Math.min(results.length, 50);
-    
+
     for (let i = 0; i < limit; i++) {
         const row = results[i];
-        
+
         const card = document.createElement('div');
         card.className = 'result-card';
         card.style.animationDelay = `${i * 0.03}s`;
-        
+
         let contentHTML = `
             <div class="card-header-actions">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
@@ -499,7 +499,7 @@ function renderResults(results, query) {
                 const cellValue = String(row[col]);
                 const highlightedValue = highlightText(cellValue, query);
                 const cleanValueForCopy = escapeHtml(cellValue);
-                
+
                 contentHTML += `
                     <div class="data-row">
                         <div class="data-row-header">
@@ -514,7 +514,7 @@ function renderResults(results, query) {
             }
         });
         contentHTML += '</div>';
-        
+
         const actionsHTML = `
             <div class="action-bar">
                 <button class="action-btn" onclick="copyRecord(this, ${i})" title="نسخ كل السجل">
@@ -528,11 +528,11 @@ function renderResults(results, query) {
                 </button>
             </div>
         `;
-        
+
         card.innerHTML = contentHTML + actionsHTML;
         card.dataset.index = i;
         card.dataset.record = JSON.stringify(row);
-        
+
         resultsContainer.appendChild(card);
     }
 }
@@ -540,7 +540,7 @@ function renderResults(results, query) {
 // --- 5. Actions Logic ---
 
 // Copy Individual Field
-window.copyField = function(btn) {
+window.copyField = function (btn) {
     const valueToCopy = btn.getAttribute('data-copy-val');
     // We reverse the escapeHtml to get the actual value for clipboard
     const unescapedValue = valueToCopy
@@ -561,17 +561,17 @@ window.copyField = function(btn) {
     });
 };
 
-window.copyRecord = function(btn, index) {
+window.copyRecord = function (btn, index) {
     const card = document.querySelector(`.result-card[data-index="${index}"]`);
     const record = JSON.parse(card.dataset.record);
-    
+
     let textToCopy = `تفاصيل السجل (من ورقة: ${state.activeSheet}):\n`;
     state.columns.forEach(col => {
         if (state.searchColumns.includes(col) && record[col] !== undefined && record[col] !== "") {
             textToCopy += `${col}: ${record[col]}\n`;
         }
     });
-    
+
     navigator.clipboard.writeText(textToCopy).then(() => {
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-check"></i> تم النسخ';
@@ -583,10 +583,10 @@ window.copyRecord = function(btn, index) {
     });
 };
 
-window.printRecord = function(index) {
+window.printRecord = function (index) {
     const card = document.querySelector(`.result-card[data-index="${index}"]`);
     const record = JSON.parse(card.dataset.record);
-    
+
     let printContent = `
         <html lang="ar" dir="rtl">
         <head>
@@ -609,7 +609,7 @@ window.printRecord = function(index) {
                 الورقة: ${escapeHtml(state.activeSheet)} | الملف: ${escapeHtml(state.fileInfo.name)} | التاريخ: ${escapeHtml(state.fileInfo.date)}
             </div>
     `;
-    
+
     state.columns.forEach(col => {
         if (state.searchColumns.includes(col) && record[col] !== undefined && record[col] !== "") {
             printContent += `
@@ -620,9 +620,9 @@ window.printRecord = function(index) {
             `;
         }
     });
-    
+
     printContent += '</body></html>';
-    
+
     const printWindow = window.open('', '', 'height=600,width=800');
     printWindow.document.write(printContent);
     printWindow.document.close();
@@ -633,10 +633,10 @@ window.printRecord = function(index) {
     }, 250);
 };
 
-window.shareRecord = function(index) {
+window.shareRecord = function (index) {
     const card = document.querySelector(`.result-card[data-index="${index}"]`);
     const record = JSON.parse(card.dataset.record);
-    
+
     let textToShare = `إليك تفاصيل السجل (من ورقة: ${state.activeSheet}):\n\n`;
     state.columns.forEach(col => {
         if (state.searchColumns.includes(col) && record[col] !== undefined && record[col] !== "") {
@@ -661,12 +661,12 @@ window.shareRecord = function(index) {
 exportExcelBtn.addEventListener('click', () => {
     const checkedBoxes = document.querySelectorAll('.card-checkbox:checked');
     let resultsToExport = [];
-    
+
     if (checkedBoxes.length > 0) {
         checkedBoxes.forEach(box => {
             const index = box.getAttribute('data-index');
             const card = document.querySelector(`.result-card[data-index="${index}"]`);
-            if(card) {
+            if (card) {
                 resultsToExport.push(JSON.parse(card.dataset.record));
             }
         });
@@ -674,7 +674,7 @@ exportExcelBtn.addEventListener('click', () => {
         const query = searchInput.value.trim();
         resultsToExport = query === "" ? state.currentSheetData : performSearch(query);
     }
-    
+
     if (resultsToExport.length === 0) {
         alert('لا توجد بيانات لتصديرها.');
         return;
@@ -695,7 +695,7 @@ exportExcelBtn.addEventListener('click', () => {
         const ws = XLSX.utils.json_to_sheet(filteredResults);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "نتائج البحث");
-        
+
         // Generate file name
         const fileName = `نتائج_بحث_${query || 'الكل'}_${new Date().getTime()}.xlsx`;
         XLSX.writeFile(wb, fileName);
