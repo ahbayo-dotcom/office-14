@@ -1,707 +1,645 @@
-// App State
-const state = {
-    password: "123", // الكلمة الافتراضية
-    workbook: null,
-    sheetNames: [],
-    activeSheet: "",
-    currentSheetData: [], // Array of objects for the active sheet
-    columns: [],
-    searchColumns: [],
-    activeSearchColumn: "all",
-    fileInfo: {
-        name: "",
-        date: ""
-    }
-};
-
-// Database Configuration for Persistent Storage
-const DB_NAME = "ExcelSearchDB";
-const STORE_NAME = "AppState";
-const DB_VERSION = 1;
-
-// DOM Elements
-const screens = {
-    login: document.getElementById('login-screen'),
-    settings: document.getElementById('settings-screen'),
-    search: document.getElementById('search-screen')
-};
-
-// Login Elements
-const passwordInput = document.getElementById('password-input');
-const loginBtn = document.getElementById('login-btn');
-const loginError = document.getElementById('login-error');
-
-// Settings Elements
-const dbSelector = document.getElementById('db-selector');
-const loadDbBtn = document.getElementById('load-db-btn');
-const fetchStatus = document.getElementById('fetch-status');
-const sheetSelectionWrapper = document.getElementById('sheet-selection-wrapper');
-const sheetSelectorSettings = document.getElementById('sheet-selector-settings');
-const headerRowInput = document.getElementById('header-row-input');
-const columnSelection = document.getElementById('column-selection');
-const columnsContainer = document.getElementById('columns-container');
-const startAppBtn = document.getElementById('start-app-btn');
-const selectAllBtn = document.getElementById('select-all-btn');
-const deselectAllBtn = document.getElementById('deselect-all-btn');
-const uploadTimeBadge = document.getElementById('upload-time-badge');
-const restoredSessionMsg = document.getElementById('restored-session-msg');
-const goToSearchBtn = document.getElementById('go-to-search-btn');
-
-// Search Elements
-const searchInput = document.getElementById('search-input');
-const clearSearchBtn = document.getElementById('clear-search');
-const resultsContainer = document.getElementById('results-container');
-const welcomeMessage = document.getElementById('welcome-message');
-const noResultsMessage = document.getElementById('no-results');
-const backToSettingsBtn = document.getElementById('back-to-settings');
-const goHomeBtn = document.getElementById('go-home-btn');
-const exportExcelBtn = document.getElementById('export-excel-btn');
-const resultCountEl = document.getElementById('result-count');
-const fileInfoBadge = document.getElementById('file-info-badge');
-
-// --- Helper Functions ---
-function getFormattedDateTime() {
-    const now = new Date();
-    return now.toLocaleString('ar-EG', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+:root {
+    --primary: #4F46E5;
+    --primary - hover: #4338CA;
+    --bg - gradient: linear - gradient(135deg, #f5f7fa 0 %, #c3cfe2 100 %);
+    --card - bg: rgba(255, 255, 255, 0.9);
+    --card - border: rgba(255, 255, 255, 0.4);
+    --text - main: #1F2937;
+    --text - muted: #6B7280;
+    --danger: #EF4444;
+    --highlight - bg: #FDE047;
+    --highlight - text: #854D0E;
 }
 
-function escapeHtml(unsafe) {
-    return String(unsafe)
-         .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
-         .replace(/>/g, "&gt;")
-         .replace(/"/g, "&quot;")
-         .replace(/'/g, "&#039;");
+* {
+    box- sizing: border - box;
+margin: 0;
+padding: 0;
+font - family: 'Cairo', sans - serif;
 }
 
-function highlightText(text, query) {
-    if (!query || query.trim() === "") return escapeHtml(text);
-    const escapedText = escapeHtml(text);
-    // Escape regex characters in query
-    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escapedQuery})`, 'gi');
-    return escapedText.replace(regex, '<mark>$1</mark>');
+body {
+    background: var(--bg - gradient);
+    min - height: 100vh;
+    color: var(--text - main);
+    display: flex;
+    justify - content: center;
+    align - items: center;
 }
 
-// --- Navigation Logic ---
-function showScreen(screenName) {
-    Object.values(screens).forEach(screen => screen.classList.remove('active'));
-    screens[screenName].classList.add('active');
+#app {
+    width: 100 %;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+    background: transparent;
 }
 
-// --- IndexedDB Logic (Persistent Storage) ---
-function initDB() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onupgradeneeded = (event) => {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME);
-            }
-        };
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-    });
-}
-
-async function saveStateToDB() {
-    try {
-        const db = await initDB();
-        const tx = db.transaction(STORE_NAME, "readwrite");
-        const store = tx.objectStore(STORE_NAME);
-        const dataToSave = {
-            currentSheetData: state.currentSheetData,
-            columns: state.columns,
-            searchColumns: state.searchColumns,
-            fileInfo: state.fileInfo,
-            activeSheet: state.activeSheet
-        };
-        store.put(dataToSave, "appData");
-    } catch (e) {
-        console.error("Failed to save state to IndexedDB", e);
+/* Adjust layout for larger screens */
+@media(min - width: 768px) {
+    #app {
+        height: 90vh;
+        max - width: 1200px;
+        border - radius: 24px;
+        box - shadow: 0 25px 50px - 12px rgba(0, 0, 0, 0.25);
+        background: #ffffff;
     }
 }
 
-async function loadStateFromDB() {
-    try {
-        const db = await initDB();
-        const tx = db.transaction(STORE_NAME, "readonly");
-        const store = tx.objectStore(STORE_NAME);
-        const request = store.get("appData");
-        
-        request.onsuccess = () => {
-            if (request.result && request.result.currentSheetData.length > 0) {
-                const data = request.result;
-                state.currentSheetData = data.currentSheetData;
-                state.columns = data.columns;
-                state.searchColumns = data.searchColumns;
-                state.fileInfo = data.fileInfo;
-                state.activeSheet = data.activeSheet;
-                
-                // Show restore message
-                restoredSessionMsg.classList.remove('hidden');
-                
-                // Set File Info Badge
-                updateFileInfoBadge();
+/* Screens Setup */
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100 %;
+    height: 100 %;
+    display: flex;
+    flex - direction: column;
+    padding: 20px;
+    opacity: 0;
+    pointer - events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    transform: translateY(20px);
+    overflow - y: auto;
+    overflow - x: hidden;
+}
 
-                state.activeSearchColumn = "all";
-                renderSearchTabs();
-            }
-        };
-    } catch (e) {
-        console.error("Failed to load state from IndexedDB", e);
+.screen.active {
+    opacity: 1;
+    pointer - events: all;
+    transform: translateY(0);
+}
+
+/* Glass Card styles for Login & Settings */
+.glass - card {
+    background: var(--card - bg);
+    backdrop - filter: blur(12px);
+    border: 1px solid var(--card - border);
+    border - radius: 20px;
+    padding: 35px 25px;
+    text - align: center;
+    box - shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    margin: auto;
+    width: 100 %;
+    max - width: 500px;
+}
+
+.icon - container {
+    font - size: 3.5rem;
+    color: var(--primary);
+    margin - bottom: 20px;
+}
+
+.glass - card h2 {
+    font - size: 1.6rem;
+    margin - bottom: 10px;
+    font - weight: 700;
+}
+
+.glass - card p {
+    color: var(--text - muted);
+    font - size: 0.95rem;
+    margin - bottom: 30px;
+}
+
+/* Global Inputs & Buttons */
+input[type = "password"],
+    input[type = "text"] {
+    width: 100 %;
+    padding: 14px 18px;
+    border: 2px solid #E5E7EB;
+    border - radius: 12px;
+    font - size: 1rem;
+    margin - bottom: 15px;
+    transition: all 0.3s ease;
+    outline: none;
+    background: #F9FAFB;
+}
+
+input[type = "password"]: focus,
+    input[type = "text"]:focus {
+    border - color: var(--primary);
+    box - shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
+    background: #ffffff;
+}
+
+button {
+    width: 100 %;
+    padding: 14px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border - radius: 12px;
+    font - size: 1.05rem;
+    font - weight: 700;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+    display: flex;
+    justify - content: center;
+    align - items: center;
+    gap: 10px;
+}
+
+button:hover {
+    background: var(--primary - hover);
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.text - btn {
+    background: transparent;
+    color: var(--primary);
+    padding: 5px 10px;
+    width: auto;
+    font - size: 0.9rem;
+    font - weight: 600;
+}
+.text - btn:hover {
+    background: rgba(79, 70, 229, 0.1);
+    transform: none;
+}
+
+.error - msg {
+    color: var(--danger)!important;
+    font - size: 0.9rem!important;
+    margin - top: 15px;
+    margin - bottom: 0!important;
+    min - height: 20px;
+}
+
+/* File Upload UI */
+.file - upload - wrapper {
+    position: relative;
+    margin - bottom: 25px;
+}
+
+input[type = "file"] {
+    display: none;
+}
+
+.file - upload - label {
+    display: flex;
+    flex - direction: column;
+    align - items: center;
+    justify - content: center;
+    padding: 35px;
+    border: 2px dashed var(--primary);
+    border - radius: 16px;
+    cursor: pointer;
+    background: rgba(79, 70, 229, 0.03);
+    transition: all 0.3s ease;
+    color: var(--primary);
+    font - weight: 700;
+}
+
+.file - upload - label i {
+    font - size: 2.8rem;
+    margin - bottom: 15px;
+}
+
+.file - upload - label:hover {
+    background: rgba(79, 70, 229, 0.08);
+    border - color: var(--primary - hover);
+}
+
+.upload - time {
+    font - size: 0.8rem;
+    color: var(--text - muted);
+    margin - top: 10px;
+    background: white;
+    padding: 4px 10px;
+    border - radius: 20px;
+    box - shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Columns Checkboxes */
+.selection - header {
+    display: flex;
+    justify - content: space - between;
+    align - items: center;
+    margin - bottom: 15px;
+    flex - wrap: wrap;
+    gap: 10px;
+}
+
+#column - selection h3 {
+    font - size: 1.1rem;
+    text - align: right;
+    color: var(--text - main);
+    margin: 0;
+}
+
+.selection - actions {
+    display: flex;
+    gap: 5px;
+}
+
+.checkbox - grid {
+    display: grid;
+    grid - template - columns: 1fr 1fr;
+    gap: 12px;
+    margin - bottom: 25px;
+    text - align: right;
+    max - height: 200px;
+    overflow - y: auto;
+    padding - left: 5px; /* for scrollbar */
+}
+
+.checkbox - item {
+    display: flex;
+    align - items: center;
+    gap: 10px;
+    font - size: 0.95rem;
+    background: #F3F4F6;
+    padding: 10px 14px;
+    border - radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+    user - select: none;
+}
+
+.checkbox - item:hover {
+    background: #E5E7EB;
+}
+
+.hidden {
+    display: none!important;
+}
+
+/* Search Screen Styles */
+.app - header {
+    display: flex;
+    justify - content: space - between;
+    align - items: flex - start;
+    padding - bottom: 15px;
+    border - bottom: 1px solid #E5E7EB;
+    margin - bottom: 10px;
+    padding - top: 10px;
+}
+
+.header - titles {
+    display: flex;
+    flex - direction: column;
+    gap: 8px;
+}
+
+.app - header h2 {
+    font - size: 1.4rem;
+    display: flex;
+    align - items: center;
+    gap: 10px;
+    color: var(--primary);
+    margin: 0;
+}
+
+.file - info - badge {
+    font - size: 0.75rem;
+    color: var(--text - muted);
+    background: #F3F4F6;
+    padding: 6px 10px;
+    border - radius: 8px;
+    display: flex;
+    flex - wrap: wrap;
+    align - items: center;
+    gap: 8px;
+    font - weight: 600;
+}
+
+@media(max - width: 600px) {
+    .hide - on - mobile {
+        display: none!important;
+    }
+    .file - info - badge {
+        flex - direction: column;
+        align - items: flex - start;
+        gap: 4px;
     }
 }
 
-function updateFileInfoBadge() {
-    fileInfoBadge.innerHTML = `
-        <div style="display:flex; align-items:center; gap:5px;">
-            <i class="fa-solid fa-file-excel"></i> 
-            <span style="max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="auto" title="${escapeHtml(state.fileInfo.name)}">${escapeHtml(state.fileInfo.name)}</span>
-        </div>
-        <div class="hide-on-mobile" style="opacity: 0.5;">|</div>
-        <div style="display:flex; align-items:center; gap:5px;">
-            <i class="fa-solid fa-table"></i> ورقة: ${escapeHtml(state.activeSheet)}
-        </div>
-        <div class="hide-on-mobile" style="opacity: 0.5;">|</div>
-        <div class="hide-on-mobile" style="display:flex; align-items:center; gap:5px;">
-            <i class="fa-regular fa-clock"></i> <span dir="ltr">${escapeHtml(state.fileInfo.date)}</span>
-        </div>
-    `;
-    fileInfoBadge.classList.remove('hidden');
+.header - actions {
+    display: flex;
+    gap: 5px;
 }
 
-
-// --- 1. Login Logic ---
-loginBtn.addEventListener('click', handleLogin);
-passwordInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleLogin();
-});
-
-function handleLogin() {
-    const entered = passwordInput.value;
-    if (entered === state.password) {
-        loginError.textContent = '';
-        showScreen('settings');
-        loadDbConfig(); // Load available databases from config
-        loadStateFromDB(); // Attempt to load saved session
-    } else {
-        loginError.textContent = 'كلمة المرور غير صحيحة!';
-        passwordInput.value = '';
-    }
+.icon - btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: transparent;
+    color: var(--text - muted);
+    font - size: 1.2rem;
+    border - radius: 50 %;
 }
 
-goToSearchBtn.addEventListener('click', () => {
-    showScreen('search');
-});
+.icon - btn:hover {
+    color: var(--primary);
+    background: #F3F4F6;
+    transform: none;
+}
 
-// --- 2. Auto Fetch and Parsing Logic ---
+.search - container {
+    position: sticky;
+    top: 0;
+    background: #ffffff;
+    z - index: 20;
+    padding - bottom: 10px;
+    padding - top: 5px;
+    border - bottom: 1px solid #F3F4F6;
+}
 
-// Load DB Config
-async function loadDbConfig() {
-    try {
-        const response = await fetch('config.json?v=' + new Date().getTime());
-        if (!response.ok) throw new Error('لا يمكن قراءة config.json');
-        const config = await response.json();
-        
-        dbSelector.innerHTML = '';
-        if (config.databases && config.databases.length > 0) {
-            config.databases.forEach(db => {
-                const option = document.createElement('option');
-                option.value = db.file;
-                option.textContent = db.name;
-                dbSelector.appendChild(option);
-            });
-        } else {
-            dbSelector.innerHTML = '<option value="">لا توجد قواعد بيانات</option>';
-        }
-    } catch (error) {
-        console.error('Config Error:', error);
-        dbSelector.innerHTML = '<option value="">خطأ في قراءة إعدادات قواعد البيانات</option>';
+@media(max - width: 767px) {
+    .search - container {
+        background: #fdfdfd;
     }
 }
 
-// Fetch DB File
-loadDbBtn.addEventListener('click', async () => {
-    const fileUrl = dbSelector.value;
-    const dbName = dbSelector.options[dbSelector.selectedIndex].text;
-    
-    if (!fileUrl) {
-        alert('يرجى اختيار قاعدة بيانات.');
-        return;
-    }
-
-    restoredSessionMsg.classList.add('hidden'); // Hide restore message if fetching new
-    fetchStatus.textContent = "جاري تحميل البيانات، يرجى الانتظار...";
-    fetchStatus.classList.remove('hidden');
-    sheetSelectionWrapper.classList.add('hidden');
-    columnSelection.classList.add('hidden');
-    
-    // Disable button to prevent multiple clicks
-    loadDbBtn.disabled = true;
-
-    try {
-        const response = await fetch(fileUrl + '?v=' + new Date().getTime()); // Prevent cache
-        if (!response.ok) throw new Error('فشل تحميل الملف');
-        
-        const arrayBuffer = await response.arrayBuffer();
-        const data = new Uint8Array(arrayBuffer);
-        
-        state.workbook = XLSX.read(data, {type: 'array'});
-        state.sheetNames = state.workbook.SheetNames;
-        
-        if (state.sheetNames.length > 0) {
-            state.fileInfo.name = dbName;
-            state.fileInfo.date = getFormattedDateTime();
-            
-            sheetSelectorSettings.innerHTML = '';
-            state.sheetNames.forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                sheetSelectorSettings.appendChild(option);
-            });
-            
-            sheetSelectionWrapper.classList.remove('hidden');
-            fetchStatus.innerHTML = `<span style="color: #10B981;"><i class="fa-solid fa-check"></i> تم جلب البيانات بنجاح (${state.sheetNames.length} ورقة).</span>`;
-            
-            loadDataForSheet();
-            columnSelection.classList.remove('hidden');
-        } else {
-            alert('الملف فارغ أو لم يتم العثور على أوراق عمل.');
-            fetchStatus.textContent = "";
-        }
-    } catch (error) {
-        console.error(error);
-        alert('حدث خطأ أثناء جلب الملف. ربما المتصفح يمنع ذلك محلياً لدواعي أمنية أو الرابط غير صحيح.');
-        fetchStatus.textContent = "حدث خطأ أثناء تحميل البيانات.";
-    } finally {
-        loadDbBtn.disabled = false;
-    }
-});
-
-sheetSelectorSettings.addEventListener('change', loadDataForSheet);
-headerRowInput.addEventListener('change', loadDataForSheet);
-
-function loadDataForSheet() {
-    if (!state.workbook) return;
-    
-    const sheetName = sheetSelectorSettings.value;
-    state.activeSheet = sheetName;
-    
-    let headerRowIndex = parseInt(headerRowInput.value, 10);
-    if (isNaN(headerRowIndex) || headerRowIndex < 1) headerRowIndex = 1;
-    const skipRows = headerRowIndex - 1;
-    
-    const worksheet = state.workbook.Sheets[sheetName];
-    
-    state.currentSheetData = XLSX.utils.sheet_to_json(worksheet, { 
-        defval: "", 
-        blankrows: false,
-        range: skipRows,
-        raw: false
-    });
-    
-    let allColumnsSet = new Set();
-    if(state.currentSheetData.length > 0) {
-        Object.keys(state.currentSheetData[0]).forEach(col => allColumnsSet.add(col));
-    }
-    
-    state.columns = Array.from(allColumnsSet).filter(col => {
-        return !col.toUpperCase().includes('EMPTY');
-    });
-    
-    renderColumnSelection();
+.search - tabs {
+    display: flex;
+    flex - wrap: wrap;
+    gap: 8px;
+    padding - bottom: 8px;
+    margin - bottom: 10px;
+    -webkit - overflow - scrolling: touch;
+}
+.search - tab {
+    flex - shrink: 0;
+    padding: 6px 14px;
+    background: #F3F4F6;
+    color: var(--text - muted);
+    border - radius: 20px;
+    font - size: 0.85rem;
+    font - weight: 600;
+    white - space: nowrap;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+.search - tab:hover {
+    background: #E5E7EB;
+}
+.search - tab.active {
+    background: var(--primary);
+    color: white;
+    box - shadow: 0 4px 6px - 1px rgba(79, 70, 229, 0.2);
 }
 
-function renderColumnSelection() {
-    columnsContainer.innerHTML = '';
-    
-    if (state.columns.length === 0) {
-        columnsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; color: var(--text-muted);">لا توجد أعمدة صالحة. يرجى التأكد من رقم صف الجدول.</p>';
-        return;
-    }
-    
-    state.columns.forEach(col => {
-        const label = document.createElement('label');
-        label.className = 'checkbox-item';
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.value = col;
-        checkbox.checked = true;
-        
-        label.appendChild(checkbox);
-        label.appendChild(document.createTextNode(col));
-        
-        columnsContainer.appendChild(label);
-    });
+.search - box {
+    position: relative;
+    display: flex;
+    align - items: center;
 }
 
-selectAllBtn.addEventListener('click', () => {
-    const checkboxes = columnsContainer.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(cb => cb.checked = true);
-});
-
-deselectAllBtn.addEventListener('click', () => {
-    const checkboxes = columnsContainer.querySelectorAll('input[type="checkbox"]');
-    checkboxes.forEach(cb => cb.checked = false);
-});
-
-// --- 3. Start App Logic ---
-startAppBtn.addEventListener('click', () => {
-    const checkboxes = columnsContainer.querySelectorAll('input[type="checkbox"]:checked');
-    state.searchColumns = Array.from(checkboxes).map(cb => cb.value);
-    
-    if (state.searchColumns.length === 0) {
-        alert('يرجى تحديد عمود واحد على الأقل ليتم البحث فيه.');
-        return;
-    }
-    
-    updateFileInfoBadge();
-    
-    // Save state so it persists on refresh
-    saveStateToDB();
-    
-    state.activeSearchColumn = "all";
-    renderSearchTabs();
-    
-    searchInput.value = '';
-    updateSearchUI();
-    showScreen('search');
-});
-
-backToSettingsBtn.addEventListener('click', () => {
-    showScreen('settings');
-});
-
-goHomeBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    clearSearchBtn.classList.add('hidden');
-    updateSearchUI();
-});
-
-// --- Search Tabs Logic ---
-function renderSearchTabs() {
-    const tabsContainer = document.getElementById('search-tabs');
-    if (!tabsContainer) return;
-    tabsContainer.innerHTML = '';
-    tabsContainer.classList.remove('hidden');
-
-    const validColumns = state.searchColumns.filter(col => state.columns.includes(col));
-    const allTab = document.createElement('button');
-    allTab.className = 'search-tab' + (state.activeSearchColumn === 'all' ? ' active' : '');
-    allTab.textContent = 'الكل';
-    allTab.onclick = () => selectTab(allTab, 'all');
-    tabsContainer.appendChild(allTab);
-
-    validColumns.forEach(col => {
-        const tab = document.createElement('button');
-        tab.className = 'search-tab' + (state.activeSearchColumn === col ? ' active' : '');
-        tab.textContent = col;
-        tab.onclick = () => selectTab(tab, col);
-        tabsContainer.appendChild(tab);
-    });
+.search - icon {
+    position: absolute;
+    right: 18px;
+    color: #9CA3AF;
+    font - size: 1.1rem;
 }
 
-function selectTab(clickedTab, colName) {
-    document.querySelectorAll('.search-tab').forEach(tab => tab.classList.remove('active'));
-    clickedTab.classList.add('active');
-    state.activeSearchColumn = colName;
-    updateSearchUI(searchInput.value.trim());
+.search - box input {
+    padding - right: 45px;
+    padding - left: 45px;
+    margin - bottom: 5px;
+    box - shadow: 0 4px 6px - 1px rgba(0, 0, 0, 0.05);
 }
 
-// --- 4. Search Logic ---
-searchInput.addEventListener('input', () => {
-    const query = searchInput.value.trim();
-    if (query.length > 0) {
-        clearSearchBtn.classList.remove('hidden');
-    } else {
-        clearSearchBtn.classList.add('hidden');
-    }
-    updateSearchUI(query);
-});
+#clear - search {
+    position: absolute;
+    left: 5px;
+    background: transparent;
+    color: var(--text - muted);
+    width: 35px;
+    height: 35px;
+    border - radius: 50 %;
+}
 
-clearSearchBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    clearSearchBtn.classList.add('hidden');
-    updateSearchUI();
-    searchInput.focus();
-});
+.result - count {
+    text - align: right;
+    font - size: 0.9rem;
+    color: var(--primary);
+    font - weight: 600;
+    margin - bottom: 5px;
+    padding - right: 5px;
+}
 
-function updateSearchUI(query = "") {
-    resultsContainer.innerHTML = '';
-    resultCountEl.classList.add('hidden');
-    
-    if (query === "") {
-        welcomeMessage.classList.remove('hidden');
-        noResultsMessage.classList.add('hidden');
-        return;
-    }
-    
-    welcomeMessage.classList.add('hidden');
-    
-    const results = performSearch(query);
-    
-    if (results.length === 0) {
-        noResultsMessage.classList.remove('hidden');
-    } else {
-        noResultsMessage.classList.add('hidden');
-        resultCountEl.classList.remove('hidden');
-        resultCountEl.textContent = `تم العثور على ${results.length} سجل`;
-        renderResults(results, query);
+/* State Messages */
+.state - message {
+    text - align: center;
+    margin - top: 40px;
+    animation: fadeIn 0.6s ease;
+}
+
+.state - message.icon - wrapper {
+    font - size: 4.5rem;
+    color: #D1D5DB;
+    margin - bottom: 20px;
+}
+
+.state - message h3 {
+    color: var(--text - main);
+    margin - bottom: 10px;
+    font - size: 1.3rem;
+}
+
+.state - message p {
+    color: var(--text - muted);
+    font - size: 1rem;
+    line - height: 1.6;
+}
+
+/* Result Cards */
+.results - grid {
+    display: grid;
+    grid - template - columns: 1fr;
+    gap: 12px;
+    padding - top: 15px;
+    padding - bottom: 30px;
+}
+
+@media(min - width: 600px) {
+    .results - grid {
+        grid - template - columns: repeat(auto - fill, minmax(220px, 1fr));
     }
 }
 
-function performSearch(query) {
-    const lowerQuery = query.toLowerCase();
-    
-    return state.currentSheetData.filter(row => {
-        const columnsToSearch = state.activeSearchColumn === 'all' 
-            ? state.searchColumns 
-            : [state.activeSearchColumn];
-
-        return columnsToSearch.some(col => {
-            if (row[col] === undefined || row[col] === null) return false;
-            const cellValue = String(row[col]).toLowerCase();
-            return cellValue.includes(lowerQuery);
-        });
-    });
-}
-
-function renderResults(results, query) {
-    const limit = Math.min(results.length, 50);
-    
-    for (let i = 0; i < limit; i++) {
-        const row = results[i];
-        
-        const card = document.createElement('div');
-        card.className = 'result-card';
-        card.style.animationDelay = `${i * 0.03}s`;
-        
-        let contentHTML = `
-            <div class="card-header-actions">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" class="card-checkbox" data-index="${i}" title="تحديد للتصدير">
-                    <span style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">تحديد</span>
-                </label>
-                <span class="card-index-badge">#${i + 1}</span>
-            </div>
-            <div class="result-card-content">
-        `;
-        state.columns.forEach(col => {
-            if (state.searchColumns.includes(col) && row[col] !== undefined && row[col] !== "") {
-                const cellValue = String(row[col]);
-                const highlightedValue = highlightText(cellValue, query);
-                const cleanValueForCopy = escapeHtml(cellValue);
-                
-                contentHTML += `
-                    <div class="data-row">
-                        <div class="data-row-header">
-                            <span class="data-label">${escapeHtml(col)}</span>
-                            <button class="inline-copy-btn" onclick="copyField(this)" data-copy-val="${cleanValueForCopy}" title="نسخ هذا البيان فقط">
-                                <i class="fa-regular fa-copy"></i>
-                            </button>
-                        </div>
-                        <span class="data-value">${highlightedValue}</span>
-                    </div>
-                `;
-            }
-        });
-        contentHTML += '</div>';
-        
-        const actionsHTML = `
-            <div class="action-bar">
-                <button class="action-btn" onclick="copyRecord(this, ${i})" title="نسخ كل السجل">
-                    <i class="fa-solid fa-clipboard-list"></i> نسخ السجل
-                </button>
-                <button class="action-btn" onclick="printRecord(${i})" title="طباعة">
-                    <i class="fa-solid fa-print"></i>
-                </button>
-                <button class="action-btn" onclick="shareRecord(${i})" title="مشاركة">
-                    <i class="fa-solid fa-share-nodes"></i>
-                </button>
-            </div>
-        `;
-        
-        card.innerHTML = contentHTML + actionsHTML;
-        card.dataset.index = i;
-        card.dataset.record = JSON.stringify(row);
-        
-        resultsContainer.appendChild(card);
+@media(min - width: 1024px) {
+    .results - grid {
+        grid - template - columns: repeat(auto - fill, minmax(250px, 1fr));
     }
 }
 
-// --- 5. Actions Logic ---
+.result - card {
+    background: white;
+    border: 1px solid #E5E7EB;
+    border - radius: 12px;
+    padding: 10px 12px;
+    box - shadow: 0 4px 10px - 3px rgba(0, 0, 0, 0.05);
+    animation: slideUp 0.4s ease forwards;
+    opacity: 0;
+    transform: translateY(15px);
+    display: flex;
+    flex - direction: column;
+    justify - content: space - between;
+}
 
-// Copy Individual Field
-window.copyField = function(btn) {
-    const valueToCopy = btn.getAttribute('data-copy-val');
-    // We reverse the escapeHtml to get the actual value for clipboard
-    const unescapedValue = valueToCopy
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'");
+.result - card - content {
+    margin - bottom: 15px;
+}
 
-    navigator.clipboard.writeText(unescapedValue).then(() => {
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-check"></i>';
-        btn.classList.add('success');
-        setTimeout(() => {
-            btn.innerHTML = originalHtml;
-            btn.classList.remove('success');
-        }, 1500);
-    });
-};
+.data - row {
+    display: flex;
+    align - items: flex - start;
+    padding: 4px 0;
+    border - bottom: 1px dashed #E5E7EB;
+}
 
-window.copyRecord = function(btn, index) {
-    const card = document.querySelector(`.result-card[data-index="${index}"]`);
-    const record = JSON.parse(card.dataset.record);
-    
-    let textToCopy = `تفاصيل السجل (من ورقة: ${state.activeSheet}):\n`;
-    state.columns.forEach(col => {
-        if (state.searchColumns.includes(col) && record[col] !== undefined && record[col] !== "") {
-            textToCopy += `${col}: ${record[col]}\n`;
-        }
-    });
-    
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        const originalHtml = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-check"></i> تم النسخ';
-        btn.classList.add('success');
-        setTimeout(() => {
-            btn.innerHTML = originalHtml;
-            btn.classList.remove('success');
-        }, 2000);
-    });
-};
+.data - row: last - child {
+    border - bottom: none;
+}
 
-window.printRecord = function(index) {
-    const card = document.querySelector(`.result-card[data-index="${index}"]`);
-    const record = JSON.parse(card.dataset.record);
-    
-    let printContent = `
-        <html lang="ar" dir="rtl">
-        <head>
-            <title>طباعة السجل - ${escapeHtml(state.fileInfo.name)}</title>
-            <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #333; }
-                h2 { border-bottom: 2px solid #4F46E5; padding-bottom: 10px; color: #1F2937; }
-                .meta-info { display: inline-block; background: #E5E7EB; padding: 6px 12px; border-radius: 20px; font-size: 0.85em; color: #4B5563; margin-bottom: 20px; }
-                .row { display: flex; border-bottom: 1px solid #eee; padding: 10px 0; }
-                .label { font-weight: bold; width: 30%; color: #6B7280; font-size: 0.9em; }
-                .value { flex: 1; font-weight: bold; color: #111827; }
-                @media print {
-                    body { -webkit-print-color-adjust: exact; }
-                }
-            </style>
-        </head>
-        <body>
-            <h2>تفاصيل السجل</h2>
-            <div class="meta-info">
-                الورقة: ${escapeHtml(state.activeSheet)} | الملف: ${escapeHtml(state.fileInfo.name)} | التاريخ: ${escapeHtml(state.fileInfo.date)}
-            </div>
-    `;
-    
-    state.columns.forEach(col => {
-        if (state.searchColumns.includes(col) && record[col] !== undefined && record[col] !== "") {
-            printContent += `
-                <div class="row">
-                    <div class="label">${escapeHtml(col)}</div>
-                    <div class="value">${escapeHtml(String(record[col]))}</div>
-                </div>
-            `;
-        }
-    });
-    
-    printContent += '</body></html>';
-    
-    const printWindow = window.open('', '', 'height=600,width=800');
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-    }, 250);
-};
+.data - row - header {
+    width: 95px;
+    flex - shrink: 0;
+    display: flex;
+    align - items: center;
+    justify - content: space - between;
+    gap: 4px;
+    margin - bottom: 0;
+    padding - left: 8px; /* space between label and value */
+}
 
-window.shareRecord = function(index) {
-    const card = document.querySelector(`.result-card[data-index="${index}"]`);
-    const record = JSON.parse(card.dataset.record);
-    
-    let textToShare = `إليك تفاصيل السجل (من ورقة: ${state.activeSheet}):\n\n`;
-    state.columns.forEach(col => {
-        if (state.searchColumns.includes(col) && record[col] !== undefined && record[col] !== "") {
-            textToShare += `▪️ *${col}*: ${record[col]}\n`;
-        }
-    });
+.data - label {
+    font - weight: 700;
+    color: var(--text - muted);
+    font - size: 0.7rem;
+    line - height: 1.2;
+}
 
-    if (navigator.share) {
-        navigator.share({
-            title: 'تفاصيل السجل',
-            text: textToShare
-        }).catch(err => {
-            console.log('Share canceled or failed:', err);
-        });
-    } else {
-        alert("ميزة المشاركة المباشرة تعمل بشكل أفضل على الهواتف. تم نسخ النص لتقوم بلصقه ومشاركته.");
-        navigator.clipboard.writeText(textToShare);
-    }
-};
+/* Card Selection Checkbox */
+.card - header - actions {
+    display: flex;
+    justify - content: space - between;
+    align - items: center;
+    margin - bottom: 8px;
+    border - bottom: 1px solid #E5E7EB;
+    padding - bottom: 6px;
+}
+.card - checkbox {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent - color: var(--primary);
+}
+.card - index - badge {
+    font - size: 0.7rem;
+    color: var(--text - muted);
+    font - weight: bold;
+    background: #F3F4F6;
+    padding: 2px 6px;
+    border - radius: 8px;
+}
 
-// Export Search Results to Excel
-exportExcelBtn.addEventListener('click', () => {
-    const checkedBoxes = document.querySelectorAll('.card-checkbox:checked');
-    let resultsToExport = [];
-    
-    if (checkedBoxes.length > 0) {
-        checkedBoxes.forEach(box => {
-            const index = box.getAttribute('data-index');
-            const card = document.querySelector(`.result-card[data-index="${index}"]`);
-            if(card) {
-                resultsToExport.push(JSON.parse(card.dataset.record));
-            }
-        });
-    } else {
-        const query = searchInput.value.trim();
-        resultsToExport = query === "" ? state.currentSheetData : performSearch(query);
-    }
-    
-    if (resultsToExport.length === 0) {
-        alert('لا توجد بيانات لتصديرها.');
-        return;
-    }
+/* Inline Copy Button for individual fields */
+.inline - copy - btn {
+    background: transparent;
+    border: none;
+    color: #9CA3AF;
+    padding: 2px;
+    width: auto;
+    font - size: 0.75rem;
+    border - radius: 4px;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.inline - copy - btn:hover {
+    color: var(--primary);
+    background: #EEF2FF;
+    transform: none;
+}
+.inline - copy - btn.success {
+    color: #10B981;
+}
 
-    // Filter results to only include selected columns for neatness
-    const filteredResults = resultsToExport.map(row => {
-        const newRow = {};
-        state.searchColumns.forEach(col => {
-            if (row[col] !== undefined) {
-                newRow[col] = row[col];
-            }
-        });
-        return newRow;
-    });
+.data - value {
+    font - weight: 700;
+    color: var(--text - main);
+    font - size: 0.85rem;
+    word -break: break-word;
+    text - align: right;
+    flex - grow: 1;
+    margin - right: 0;
+    line - height: 1.3;
+}
 
-    try {
-        const ws = XLSX.utils.json_to_sheet(filteredResults);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "نتائج البحث");
-        
-        // Generate file name
-        const fileName = `نتائج_بحث_${query || 'الكل'}_${new Date().getTime()}.xlsx`;
-        XLSX.writeFile(wb, fileName);
-    } catch (error) {
-        console.error("Export Error:", error);
-        alert('حدث خطأ أثناء تصدير الملف.');
-    }
-});
+/* Highlighting styles */
+mark {
+    background - color: var(--highlight - bg);
+    color: var(--highlight - text);
+    padding: 0 2px;
+    border - radius: 3px;
+    font - weight: bold;
+}
+
+/* Action Bar */
+.action - bar {
+    display: flex;
+    justify - content: flex - end;
+    gap: 8px;
+    border - top: 1px solid #F3F4F6;
+    padding - top: 12px;
+    margin - top: auto;
+}
+
+.action - btn {
+    background: #F3F4F6;
+    color: var(--text - main);
+    border: none;
+    border - radius: 8px;
+    padding: 6px 10px;
+    font - size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align - items: center;
+    gap: 5px;
+    width: auto;
+    font - weight: 600;
+}
+
+.action - btn:hover {
+    background: #E5E7EB;
+    color: var(--primary);
+    transform: none;
+}
+
+.action - btn.success {
+    background: #DEF7EC;
+    color: #03543F;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Scrollbar */
+:: -webkit - scrollbar {
+    width: 6px;
+    height: 6px;
+}
+:: -webkit - scrollbar - track {
+    background: transparent;
+}
+:: -webkit - scrollbar - thumb {
+    background: #CBD5E1;
+    border - radius: 10px;
+}

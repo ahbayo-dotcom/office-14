@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,6 +13,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div id="app">
         <!-- Login Screen -->
@@ -32,35 +34,48 @@
                 <div class="icon-container"><i class="fa-solid fa-file-excel"></i></div>
                 <h2>إعدادات البيانات</h2>
                 <p>قم برفع ملف الإكسل لتجهيز قاعدة البيانات الخاصة بك</p>
-                
+
                 <!-- رسالة استعادة الجلسة السابقة -->
-                <div id="restored-session-msg" class="hidden" style="background: #DEF7EC; color: #03543F; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 0.95rem; text-align: right; border: 1px solid #31C48D;">
-                    <i class="fa-solid fa-circle-check" style="margin-left: 5px;"></i> 
+                <div id="restored-session-msg" class="hidden"
+                    style="background: #DEF7EC; color: #03543F; padding: 15px; border-radius: 12px; margin-bottom: 20px; font-size: 0.95rem; text-align: right; border: 1px solid #31C48D;">
+                    <i class="fa-solid fa-circle-check" style="margin-left: 5px;"></i>
                     تم العثور على بيانات سابقة محفوظة في جهازك.
-                    <button id="go-to-search-btn" style="margin-top: 12px; padding: 10px; font-size: 0.95rem; background: #03543F;">الذهاب للبحث مباشرة <i class="fa-solid fa-magnifying-glass"></i></button>
+                    <button id="go-to-search-btn"
+                        style="margin-top: 12px; padding: 10px; font-size: 0.95rem; background: #03543F;">الذهاب للبحث
+                        مباشرة <i class="fa-solid fa-magnifying-glass"></i></button>
                 </div>
 
-                <div id="db-selection-wrapper" class="db-selection-wrapper" style="margin-bottom: 25px; text-align: right;">
-                    <h3 style="font-size: 1.05rem; margin-bottom: 10px; color: var(--text-main);">اختر قاعدة البيانات:</h3>
-                    <select id="db-selector" style="width: 100%; padding: 12px 15px; border-radius: 12px; border: 2px solid #E5E7EB; outline: none; font-family: 'Cairo'; font-size: 0.95rem; background: #F9FAFB; cursor: pointer;">
+                <div id="db-selection-wrapper" class="db-selection-wrapper"
+                    style="margin-bottom: 25px; text-align: right;">
+                    <h3 style="font-size: 1.05rem; margin-bottom: 10px; color: var(--text-main);">اختر قاعدة البيانات:
+                    </h3>
+                    <select id="db-selector"
+                        style="width: 100%; padding: 12px 15px; border-radius: 12px; border: 2px solid #E5E7EB; outline: none; font-family: 'Cairo'; font-size: 0.95rem; background: #F9FAFB; cursor: pointer;">
                         <option value="">جاري تحميل قواعد البيانات...</option>
                     </select>
-                    <button id="load-db-btn" style="margin-top: 15px;">جلب البيانات <i class="fa-solid fa-cloud-arrow-down"></i></button>
-                    <div id="fetch-status" class="hidden" style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted); text-align: center;"></div>
+                    <button id="load-db-btn" style="margin-top: 15px;">جلب البيانات <i
+                            class="fa-solid fa-cloud-arrow-down"></i></button>
+                    <div id="fetch-status" class="hidden"
+                        style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted); text-align: center;">
+                    </div>
                 </div>
 
                 <!-- Sheet & Row Selection in Settings -->
                 <div id="sheet-selection-wrapper" class="hidden" style="margin-bottom: 25px;">
                     <div class="settings-row" style="display: flex; gap: 15px; text-align: right;">
                         <div style="flex: 2;">
-                            <h3 style="font-size: 1.05rem; margin-bottom: 10px; color: var(--text-main);">الورقة (Sheet):</h3>
-                            <select id="sheet-selector-settings" style="width: 100%; padding: 12px 15px; border-radius: 12px; border: 2px solid #E5E7EB; outline: none; font-family: 'Cairo'; font-size: 0.95rem; background: #F9FAFB; cursor: pointer;">
+                            <h3 style="font-size: 1.05rem; margin-bottom: 10px; color: var(--text-main);">الورقة
+                                (Sheet):</h3>
+                            <select id="sheet-selector-settings"
+                                style="width: 100%; padding: 12px 15px; border-radius: 12px; border: 2px solid #E5E7EB; outline: none; font-family: 'Cairo'; font-size: 0.95rem; background: #F9FAFB; cursor: pointer;">
                                 <!-- Options injected via JS -->
                             </select>
                         </div>
                         <div style="flex: 1;">
-                            <h3 style="font-size: 1.05rem; margin-bottom: 10px; color: var(--text-main);" title="إذا كان الجدول يبدأ من سطر مختلف">بداية الجدول:</h3>
-                            <input type="number" id="header-row-input" value="1" min="1" style="width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #E5E7EB; outline: none; text-align: center; font-family: 'Cairo'; margin: 0; font-size: 1rem; background: #F9FAFB;">
+                            <h3 style="font-size: 1.05rem; margin-bottom: 10px; color: var(--text-main);"
+                                title="إذا كان الجدول يبدأ من سطر مختلف">بداية الجدول:</h3>
+                            <input type="number" id="header-row-input" value="1" min="1"
+                                style="width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #E5E7EB; outline: none; text-align: center; font-family: 'Cairo'; margin: 0; font-size: 1rem; background: #F9FAFB;">
                         </div>
                     </div>
                 </div>
@@ -69,11 +84,13 @@
                     <div class="selection-header">
                         <h3>حدد الأعمدة التي تريد البحث فيها:</h3>
                         <div class="selection-actions">
-                            <button id="select-all-btn" class="text-btn"><i class="fa-solid fa-check-double"></i> تحديد الكل</button>
-                            <button id="deselect-all-btn" class="text-btn"><i class="fa-solid fa-xmark"></i> إلغاء التحديد</button>
+                            <button id="select-all-btn" class="text-btn"><i class="fa-solid fa-check-double"></i> تحديد
+                                الكل</button>
+                            <button id="deselect-all-btn" class="text-btn"><i class="fa-solid fa-xmark"></i> إلغاء
+                                التحديد</button>
                         </div>
                     </div>
-                    
+
                     <div id="columns-container" class="checkbox-grid"></div>
                     <button id="start-app-btn">حفظ وبدء التطبيق <i class="fa-solid fa-rocket"></i></button>
                 </div>
@@ -90,22 +107,27 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <button id="export-excel-btn" class="icon-btn" title="تصدير نتائج البحث للإكسل"><i class="fa-solid fa-file-export"></i></button>
-                    <button id="go-home-btn" class="icon-btn" title="الرئيسية"><i class="fa-solid fa-house"></i></button>
-                    <button id="back-to-settings" class="icon-btn" title="الإعدادات وتغيير الملف"><i class="fa-solid fa-gear"></i></button>
+                    <button id="export-excel-btn" class="icon-btn" title="تصدير نتائج البحث للإكسل"><i
+                            class="fa-solid fa-file-export"></i></button>
+                    <button id="go-home-btn" class="icon-btn" title="الرئيسية"><i
+                            class="fa-solid fa-house"></i></button>
+                    <button id="back-to-settings" class="icon-btn" title="الإعدادات وتغيير الملف"><i
+                            class="fa-solid fa-gear"></i></button>
                 </div>
             </header>
-            
+
             <div class="search-container">
                 <div id="search-tabs" class="search-tabs hidden">
                     <!-- Tabs will be injected via JS -->
                 </div>
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                    <input type="text" id="search-input" placeholder="اكتب الكلمة للبحث عنها في جميع الأعمدة المحددة...">
-                    <button id="clear-search" class="icon-btn hidden" title="مسح"><i class="fa-solid fa-xmark"></i></button>
+                    <input type="text" id="search-input"
+                        placeholder="اكتب الكلمة للبحث عنها في جميع الأعمدة المحددة...">
+                    <button id="clear-search" class="icon-btn hidden" title="مسح"><i
+                            class="fa-solid fa-xmark"></i></button>
                 </div>
-                
+
                 <div id="result-count" class="result-count hidden">
                     <!-- Example: تم العثور على 38 سجل -->
                 </div>
@@ -115,7 +137,8 @@
             <div id="welcome-message" class="state-message">
                 <div class="icon-wrapper"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
                 <h3>أهلاً بك</h3>
-                <p>النظام جاهز! قم بكتابة أي كلمة في مربع البحث أعلاه.<br>ستظهر النتائج المطابقة وسيتم تظليل الكلمة المطلوبة للوصول السريع.</p>
+                <p>النظام جاهز! قم بكتابة أي كلمة في مربع البحث أعلاه.<br>ستظهر النتائج المطابقة وسيتم تظليل الكلمة
+                    المطلوبة للوصول السريع.</p>
             </div>
 
             <!-- No Results -->
@@ -131,7 +154,8 @@
             </div>
         </div>
     </div>
-    
+
     <script src="script.js"></script>
 </body>
+
 </html>

@@ -78,7 +78,7 @@ body {
     border-radius: 20px;
     padding: 35px 25px;
     text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     margin: auto;
     width: 100%;
     max-width: 500px;
@@ -157,6 +157,7 @@ button:active {
     font-size: 0.9rem;
     font-weight: 600;
 }
+
 .text-btn:hover {
     background: rgba(79, 70, 229, 0.1);
     transform: none;
@@ -212,7 +213,7 @@ input[type="file"] {
     background: white;
     padding: 4px 10px;
     border-radius: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* Columns Checkboxes */
@@ -245,7 +246,8 @@ input[type="file"] {
     text-align: right;
     max-height: 200px;
     overflow-y: auto;
-    padding-left: 5px; /* for scrollbar */
+    padding-left: 5px;
+    /* for scrollbar */
 }
 
 .checkbox-item {
@@ -312,6 +314,7 @@ input[type="file"] {
     .hide-on-mobile {
         display: none !important;
     }
+
     .file-info-badge {
         flex-direction: column;
         align-items: flex-start;
@@ -352,7 +355,7 @@ input[type="file"] {
 
 @media (max-width: 767px) {
     .search-container {
-        background: #fdfdfd; 
+        background: #fdfdfd;
     }
 }
 
@@ -364,6 +367,7 @@ input[type="file"] {
     margin-bottom: 10px;
     -webkit-overflow-scrolling: touch;
 }
+
 .search-tab {
     flex-shrink: 0;
     padding: 6px 14px;
@@ -377,9 +381,11 @@ input[type="file"] {
     border: 1px solid transparent;
     transition: all 0.2s ease;
 }
+
 .search-tab:hover {
     background: #E5E7EB;
 }
+
 .search-tab.active {
     background: var(--primary);
     color: white;
@@ -508,7 +514,8 @@ input[type="file"] {
     justify-content: space-between;
     gap: 4px;
     margin-bottom: 0;
-    padding-left: 8px; /* space between label and value */
+    padding-left: 8px;
+    /* space between label and value */
 }
 
 .data-label {
@@ -527,12 +534,14 @@ input[type="file"] {
     border-bottom: 1px solid #E5E7EB;
     padding-bottom: 6px;
 }
+
 .card-checkbox {
     width: 14px;
     height: 14px;
     cursor: pointer;
     accent-color: var(--primary);
 }
+
 .card-index-badge {
     font-size: 0.7rem;
     color: var(--text-muted);
@@ -554,11 +563,13 @@ input[type="file"] {
     transition: all 0.2s;
     cursor: pointer;
 }
+
 .inline-copy-btn:hover {
     color: var(--primary);
     background: #EEF2FF;
     transform: none;
 }
+
 .inline-copy-btn.success {
     color: #10B981;
 }
@@ -622,13 +633,25 @@ mark {
 
 /* Animations */
 @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Custom Scrollbar */
@@ -636,9 +659,11 @@ mark {
     width: 6px;
     height: 6px;
 }
+
 ::-webkit-scrollbar-track {
     background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
     background: #CBD5E1;
     border-radius: 10px;
