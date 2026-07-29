@@ -358,16 +358,11 @@ input[type="file"] {
 
 .search-tabs {
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 8px;
-    overflow-x: auto;
     padding-bottom: 8px;
     margin-bottom: 10px;
-    scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-}
-.search-tabs::-webkit-scrollbar {
-    display: none;
 }
 .search-tab {
     flex-shrink: 0;

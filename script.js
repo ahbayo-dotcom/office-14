@@ -394,13 +394,14 @@ function renderSearchTabs() {
     tabsContainer.innerHTML = '';
     tabsContainer.classList.remove('hidden');
 
+    const validColumns = state.searchColumns.filter(col => state.columns.includes(col));
     const allTab = document.createElement('button');
     allTab.className = 'search-tab' + (state.activeSearchColumn === 'all' ? ' active' : '');
     allTab.textContent = 'الكل';
     allTab.onclick = () => selectTab(allTab, 'all');
     tabsContainer.appendChild(allTab);
 
-    state.searchColumns.forEach(col => {
+    validColumns.forEach(col => {
         const tab = document.createElement('button');
         tab.className = 'search-tab' + (state.activeSearchColumn === col ? ' active' : '');
         tab.textContent = col;
