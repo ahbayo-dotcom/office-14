@@ -1,6 +1,6 @@
 // App State
 const state = {
-    password: "123", // الكلمة الافتراضية
+    password: "911611", // الكلمة الافتراضية
     workbook: null,
     sheetNames: [],
     activeSheet: "",
@@ -43,7 +43,6 @@ const columnsContainer = document.getElementById('columns-container');
 const startAppBtn = document.getElementById('start-app-btn');
 const selectAllBtn = document.getElementById('select-all-btn');
 const deselectAllBtn = document.getElementById('deselect-all-btn');
-const uploadTimeBadge = document.getElementById('upload-time-badge');
 const restoredSessionMsg = document.getElementById('restored-session-msg');
 const goToSearchBtn = document.getElementById('go-to-search-btn');
 
@@ -660,9 +659,10 @@ window.shareRecord = function(index) {
 
 // Export Search Results to Excel
 exportExcelBtn.addEventListener('click', () => {
+    const query = searchInput.value.trim();
     const checkedBoxes = document.querySelectorAll('.card-checkbox:checked');
     let resultsToExport = [];
-    
+
     if (checkedBoxes.length > 0) {
         checkedBoxes.forEach(box => {
             const index = box.getAttribute('data-index');
@@ -672,7 +672,6 @@ exportExcelBtn.addEventListener('click', () => {
             }
         });
     } else {
-        const query = searchInput.value.trim();
         resultsToExport = query === "" ? state.currentSheetData : performSearch(query);
     }
     
