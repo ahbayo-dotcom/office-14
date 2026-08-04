@@ -171,50 +171,7 @@ button:active {
     min-height: 20px;
 }
 
-/* File Upload UI */
-.file-upload-wrapper {
-    position: relative;
-    margin-bottom: 25px;
-}
-
-input[type="file"] {
-    display: none;
-}
-
-.file-upload-label {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 35px;
-    border: 2px dashed var(--primary);
-    border-radius: 16px;
-    cursor: pointer;
-    background: rgba(79, 70, 229, 0.03);
-    transition: all 0.3s ease;
-    color: var(--primary);
-    font-weight: 700;
-}
-
-.file-upload-label i {
-    font-size: 2.8rem;
-    margin-bottom: 15px;
-}
-
-.file-upload-label:hover {
-    background: rgba(79, 70, 229, 0.08);
-    border-color: var(--primary-hover);
-}
-
-.upload-time {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin-top: 10px;
-    background: white;
-    padding: 4px 10px;
-    border-radius: 20px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
+/* (تم حذف أكواد واجهة رفع الملفات القديمة - لم تعد مستخدمة) */
 
 /* Columns Checkboxes */
 .selection-header {
@@ -361,11 +318,23 @@ input[type="file"] {
 
 .search-tabs {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
+    overflow-x: auto;
     padding-bottom: 8px;
     margin-bottom: 10px;
+    scrollbar-width: thin;
     -webkit-overflow-scrolling: touch;
+}
+.search-tabs::-webkit-scrollbar {
+    height: 6px;
+}
+.search-tabs::-webkit-scrollbar-track {
+    background: transparent;
+}
+.search-tabs::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 10px;
 }
 
 .search-tab {
