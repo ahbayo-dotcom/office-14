@@ -338,8 +338,12 @@ button:active {
 }
 
 .search-tab {
+    width: auto;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
     flex-shrink: 0;
-    padding: 6px 14px;
+    padding: 7px 18px;
     background: #F3F4F6;
     color: var(--text-muted);
     border-radius: 20px;
@@ -347,18 +351,21 @@ button:active {
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
-    border: 1px solid transparent;
+    border: 1px solid #E5E7EB;
     transition: all 0.2s ease;
 }
 
 .search-tab:hover {
     background: #E5E7EB;
+    color: var(--text-main);
+    transform: translateY(-1px);
 }
 
 .search-tab.active {
     background: var(--primary);
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+    border-color: var(--primary);
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);
 }
 
 .search-box {
