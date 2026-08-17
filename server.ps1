@@ -26,6 +26,7 @@ try {
                 ".js"   { $response.ContentType = "application/javascript; charset=utf-8" }
                 ".json" { $response.ContentType = "application/json; charset=utf-8" }
                 ".xlsx" { $response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+                ".xlsm" { $response.ContentType = "application/vnd.ms-excel.sheet.macroEnabled.12" }
                 ".txt"  { $response.ContentType = "text/plain; charset=utf-8" }
                 default { $response.ContentType = "application/octet-stream" }
             }

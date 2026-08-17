@@ -11,8 +11,13 @@ const state = {
     fileInfo: {
         name: "",
         date: ""
-    }
+    },
+    currentSearchResults: [],
+    renderedCount: 0,
+    currentQuery: ""
 };
+
+const PAGE_SIZE = 50;
 
 // Database Configuration for Persistent Storage
 const DB_NAME = "ExcelSearchDB";
@@ -57,6 +62,9 @@ const goHomeBtn = document.getElementById('go-home-btn');
 const exportExcelBtn = document.getElementById('export-excel-btn');
 const resultCountEl = document.getElementById('result-count');
 const fileInfoBadge = document.getElementById('file-info-badge');
+const loadMoreContainer = document.getElementById('load-more-container');
+const loadMoreBtn = document.getElementById('load-more-btn');
+const loadMoreText = document.getElementById('load-more-text');
 
 // --- Helper Functions ---
 function getFormattedDateTime() {
@@ -215,6 +223,8 @@ async function loadDbConfig() {
                 const option = document.createElement('option');
                 option.value = db.file;
                 option.textContent = db.name;
+                if (db.fixedSheet) option.dataset.fixedSheet = db.fixedSheet;
+                if (db.headerRow) option.dataset.headerRow = db.headerRow;
                 dbSelector.appendChild(option);
             });
         } else {
@@ -229,7 +239,14 @@ async function loadDbConfig() {
 // Fetch DB File
 loadDbBtn.addEventListener('click', async () => {
     const fileUrl = dbSelector.value;
-    const dbName = dbSelector.options[dbSelector.selectedIndex].text;
+    const selectedOption = dbSelector.options[dbSelector.selectedIndex];
+    const dbName = selectedOption ? selectedOption.text : '';
+    const fixedSheet = selectedOption ? selectedOption.dataset.fixedSheet : null;
+    const defaultHeaderRow = selectedOption ? selectedOption.dataset.headerRow : null;
+    
+    if (defaultHeaderRow) {
+        headerRowInput.value = defaultHeaderRow;
+    }
     
     if (!fileUrl) {
         alert('يرجى اختيار قاعدة بيانات.');
@@ -267,8 +284,14 @@ loadDbBtn.addEventListener('click', async () => {
                 sheetSelectorSettings.appendChild(option);
             });
             
-            sheetSelectionWrapper.classList.remove('hidden');
-            fetchStatus.innerHTML = `<span style="color: #10B981;"><i class="fa-solid fa-check"></i> تم جلب البيانات بنجاح (${state.sheetNames.length} ورقة).</span>`;
+            if (fixedSheet && state.sheetNames.includes(fixedSheet)) {
+                sheetSelectorSettings.value = fixedSheet;
+                sheetSelectionWrapper.classList.add('hidden'); // إخفاء القائمة لتثبيت الورقة
+                fetchStatus.innerHTML = `<span style="color: #10B981;"><i class="fa-solid fa-check"></i> تم جلب البيانات وتثبيت ورقة (${fixedSheet}) بنجاح.</span>`;
+            } else {
+                sheetSelectionWrapper.classList.remove('hidden');
+                fetchStatus.innerHTML = `<span style="color: #10B981;"><i class="fa-solid fa-check"></i> تم جلب البيانات بنجاح (${state.sheetNames.length} ورقة).</span>`;
+            }
             
             loadDataForSheet();
             columnSelection.classList.remove('hidden');
@@ -437,8 +460,12 @@ clearSearchBtn.addEventListener('click', () => {
 function updateSearchUI(query = "") {
     resultsContainer.innerHTML = '';
     resultCountEl.classList.add('hidden');
+    loadMoreContainer.classList.add('hidden');
+    state.currentQuery = query;
+    state.renderedCount = 0;
     
     if (query === "") {
+        state.currentSearchResults = [];
         welcomeMessage.classList.remove('hidden');
         noResultsMessage.classList.add('hidden');
         return;
@@ -447,6 +474,7 @@ function updateSearchUI(query = "") {
     welcomeMessage.classList.add('hidden');
     
     const results = performSearch(query);
+    state.currentSearchResults = results;
     
     if (results.length === 0) {
         noResultsMessage.classList.remove('hidden');
@@ -454,9 +482,35 @@ function updateSearchUI(query = "") {
         noResultsMessage.classList.add('hidden');
         resultCountEl.classList.remove('hidden');
         resultCountEl.textContent = `تم العثور على ${results.length} سجل`;
-        renderResults(results, query);
+        renderNextBatch();
     }
 }
+
+function renderNextBatch() {
+    const total = state.currentSearchResults.length;
+    const startIndex = state.renderedCount;
+    const endIndex = Math.min(startIndex + PAGE_SIZE, total);
+    
+    if (startIndex >= total) {
+        loadMoreContainer.classList.add('hidden');
+        return;
+    }
+    
+    renderResultsBatch(state.currentSearchResults, state.currentQuery, startIndex, endIndex);
+    state.renderedCount = endIndex;
+    
+    if (state.renderedCount < total) {
+        loadMoreContainer.classList.remove('hidden');
+        const remaining = total - state.renderedCount;
+        loadMoreText.textContent = `عرض المزيد (تم عرض ${state.renderedCount} من ${total} - متبقي ${remaining})`;
+    } else {
+        loadMoreContainer.classList.add('hidden');
+    }
+}
+
+loadMoreBtn.addEventListener('click', () => {
+    renderNextBatch();
+});
 
 function performSearch(query) {
     const lowerQuery = query.toLowerCase();
@@ -474,15 +528,13 @@ function performSearch(query) {
     });
 }
 
-function renderResults(results, query) {
-    const limit = Math.min(results.length, 50);
-    
-    for (let i = 0; i < limit; i++) {
+function renderResultsBatch(results, query, startIndex, endIndex) {
+    for (let i = startIndex; i < endIndex; i++) {
         const row = results[i];
         
         const card = document.createElement('div');
         card.className = 'result-card';
-        card.style.animationDelay = `${i * 0.03}s`;
+        card.style.animationDelay = `${(i - startIndex) * 0.02}s`;
         
         let contentHTML = `
             <div class="card-header-actions">
@@ -498,13 +550,12 @@ function renderResults(results, query) {
             if (state.searchColumns.includes(col) && row[col] !== undefined && row[col] !== "") {
                 const cellValue = String(row[col]);
                 const highlightedValue = highlightText(cellValue, query);
-                const cleanValueForCopy = escapeHtml(cellValue);
                 
                 contentHTML += `
                     <div class="data-row">
                         <div class="data-row-header">
                             <span class="data-label">${escapeHtml(col)}</span>
-                            <button class="inline-copy-btn" onclick="copyField(this)" data-copy-val="${cleanValueForCopy}" title="نسخ هذا البيان فقط">
+                            <button class="inline-copy-btn" onclick="copyField(this)" data-col="${escapeHtml(col)}" title="نسخ هذا البيان فقط">
                                 <i class="fa-regular fa-copy"></i>
                             </button>
                         </div>
@@ -541,16 +592,22 @@ function renderResults(results, query) {
 
 // Copy Individual Field
 window.copyField = function(btn) {
-    const valueToCopy = btn.getAttribute('data-copy-val');
-    // We reverse the escapeHtml to get the actual value for clipboard
-    const unescapedValue = valueToCopy
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'");
+    const card = btn.closest('.result-card');
+    const col = btn.getAttribute('data-col');
+    let textToCopy = "";
+    
+    if (card && card.dataset.record && col) {
+        try {
+            const record = JSON.parse(card.dataset.record);
+            textToCopy = record[col] !== undefined ? String(record[col]) : "";
+        } catch (e) {
+            textToCopy = btn.closest('.data-row')?.querySelector('.data-value')?.textContent || "";
+        }
+    } else {
+        textToCopy = btn.closest('.data-row')?.querySelector('.data-value')?.textContent || "";
+    }
 
-    navigator.clipboard.writeText(unescapedValue).then(() => {
+    navigator.clipboard.writeText(textToCopy).then(() => {
         const originalHtml = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-check"></i>';
         btn.classList.add('success');
