@@ -602,6 +602,18 @@ mark {
     transform: none;
 }
 
+.sticker-btn {
+    background: #EEF2FF;
+    color: var(--primary);
+    border: 1px solid #C7D2FE;
+}
+
+.sticker-btn:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+}
+
 .action-btn.success {
     background: #DEF7EC;
     color: #03543F;

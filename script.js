@@ -568,6 +568,9 @@ function renderResultsBatch(results, query, startIndex, endIndex) {
         
         const actionsHTML = `
             <div class="action-bar">
+                <button class="action-btn sticker-btn" onclick="printSticker(${i})" title="طباعة ستيكر حراري (M108)">
+                    <i class="fa-solid fa-tag"></i> ستيكر
+                </button>
                 <button class="action-btn" onclick="copyRecord(this, ${i})" title="نسخ كل السجل">
                     <i class="fa-solid fa-clipboard-list"></i> نسخ السجل
                 </button>
@@ -589,6 +592,164 @@ function renderResultsBatch(results, query, startIndex, endIndex) {
 }
 
 // --- 5. Actions Logic ---
+
+// Helper to extract field by multiple aliases
+function extractFieldValue(record, possibleKeys) {
+    if (!record) return "---";
+    const keys = Object.keys(record);
+    // 1. Exact match
+    for (const p of possibleKeys) {
+        if (record[p] !== undefined && String(record[p]).trim() !== "") {
+            return String(record[p]).trim();
+        }
+    }
+    // 2. Case-insensitive / partial match
+    for (const p of possibleKeys) {
+        const foundKey = keys.find(k => k.trim().toLowerCase() === p.toLowerCase() || k.trim().toLowerCase().includes(p.toLowerCase()));
+        if (foundKey && record[foundKey] !== undefined && String(record[foundKey]).trim() !== "") {
+            return String(record[foundKey]).trim();
+        }
+    }
+    return "---";
+}
+
+// Print Thermal Sticker (Phomemo M108 - 39.4mm x 29.9mm)
+window.printSticker = function(index) {
+    const card = document.querySelector(`.result-card[data-index="${index}"]`);
+    if (!card || !card.dataset.record) return;
+    const record = JSON.parse(card.dataset.record);
+    
+    const cname = extractFieldValue(record, ['Cname', 'CNAME', 'cname', 'C_name', 'الاسم', 'اسم', 'الاسم الرباعي', 'الاسم الثلاثي', 'Name', 'Customer', 'الزبون', 'الموظف']);
+    const nid = extractFieldValue(record, ['NID', 'nid', 'الرقم الوطني', 'الوطني', 'رقم الهوية', 'الهوية', 'National_ID', 'ID', 'الرقم_الوطني']);
+    const mobile = extractFieldValue(record, ['Mobile', 'mobile', 'Phone', 'phone', 'الهاتف', 'الموبايل', 'رقم الهاتف', 'تليفون', 'رقم الموبايل', 'رقم_الهاتف']);
+    const recordNo = extractFieldValue(record, ['N.O', 'N_O', 'NO', 'no', 'No', 'N.o', 'رقم السجل', 'السجل', 'رقم', 'تسلسل', 'الكود']);
+
+    const printContent = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Sticker_${escapeHtml(nid !== '---' ? nid : cname)}</title>
+    <style>
+        @page {
+            size: 38mm 25mm;
+            margin: 0mm !important;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        html, body {
+            width: 38mm;
+            height: 25mm;
+            max-height: 25mm;
+            margin: 0 auto !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            background: #ffffff;
+            color: #000000;
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        }
+        .sticker-card {
+            width: 100%;
+            height: 25mm;
+            max-height: 25mm;
+            padding: 1mm 3.5mm 0.8mm 3.5mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            page-break-after: avoid !important;
+            page-break-inside: avoid !important;
+            break-after: avoid !important;
+        }
+        .sticker-header {
+            font-size: 7pt;
+            font-weight: 900;
+            text-align: center;
+            border-bottom: 0.8pt solid #000;
+            padding-bottom: 0.3mm;
+            margin: 0 auto 0.5mm auto;
+            line-height: 1;
+            width: 85%;
+        }
+        .sticker-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6mm;
+            justify-content: center;
+            flex-grow: 1;
+        }
+        .row-item {
+            display: flex;
+            align-items: baseline;
+            gap: 1mm;
+            line-height: 1.15;
+            overflow: hidden;
+        }
+        .row-label {
+            font-weight: 800;
+            font-size: 6pt;
+            flex-shrink: 0;
+        }
+        .row-val {
+            font-weight: 800;
+            font-size: 6.2pt;
+            overflow: hidden;
+            word-break: break-word;
+            line-height: 1.1;
+        }
+        .row-val.num {
+            font-family: Consolas, 'Courier New', monospace, sans-serif;
+            font-weight: 900;
+            font-size: 6.8pt;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="sticker-card">
+        <div class="sticker-header">مكتب 14</div>
+        <div class="sticker-body">
+            <div class="row-item">
+                <span class="row-label">الاسم:</span>
+                <span class="row-val" dir="auto">${escapeHtml(cname)}</span>
+            </div>
+            <div class="row-item">
+                <span class="row-label">الوطني:</span>
+                <span class="row-val num" dir="ltr">${escapeHtml(nid)}</span>
+            </div>
+            <div class="row-item">
+                <span class="row-label">الهاتف:</span>
+                <span class="row-val num" dir="ltr">${escapeHtml(mobile)}</span>
+            </div>
+            ${recordNo !== '---' ? `
+            <div class="row-item">
+                <span class="row-label">السجل:</span>
+                <span class="row-val num" dir="ltr">${escapeHtml(recordNo)}</span>
+            </div>` : ''}
+        </div>
+    </div>
+</body>
+</html>`;
+
+    const printWindow = window.open('', '_blank', 'width=450,height=350');
+    if (!printWindow) {
+        alert('يرجى السماح بالنوافذ المنبثقة (Popups) للطباعة.');
+        return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 300);
+};
 
 // Copy Individual Field
 window.copyField = function(btn) {
